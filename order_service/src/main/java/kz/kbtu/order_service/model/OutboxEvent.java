@@ -8,7 +8,6 @@ import java.util.UUID;
 @Table(name = "outbox")
 public class OutboxEvent {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
@@ -26,7 +25,9 @@ public class OutboxEvent {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    // Default constructor for JPA
     public OutboxEvent() {
+        this.id = UUID.randomUUID(); // Manually generate UUID
         this.createdAt = LocalDateTime.now();
     }
 
