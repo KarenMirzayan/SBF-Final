@@ -1,11 +1,11 @@
-package kz.kbtu.order_service.config;
+package kz.kbtu.message_relay.config;
 
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaAdmin;
-import org.apache.kafka.clients.admin.NewTopic;
 
 import java.util.HashMap;
 import java.util.Map;
