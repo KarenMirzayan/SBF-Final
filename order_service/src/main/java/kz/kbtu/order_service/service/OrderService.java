@@ -92,8 +92,8 @@ public class OrderService {
                         payload
                 );
                 logger.info("Persisting outbox event for ORDER_UPDATED with ID: {}", event.getId());
-                entityManager.persist(event); // Explicitly persist as new entity
-                entityManager.flush(); // Ensure event is persisted
+                entityManager.persist(event);
+                entityManager.flush();
                 logger.info("Order updated successfully: {}", savedOrder.getId());
                 return savedOrder;
             } catch (JsonProcessingException e) {
@@ -116,10 +116,10 @@ public class OrderService {
                     "{}"
             );
             logger.info("Persisting outbox event for ORDER_DELETED with ID: {}", event.getId());
-            entityManager.persist(event); // Explicitly persist as new entity
-            entityManager.flush(); // Ensure event is persisted
+            entityManager.persist(event);
+            entityManager.flush();
             orderRepository.deleteById(id);
-            entityManager.flush(); // Ensure deletion is committed
+            entityManager.flush();
             logger.info("Order deleted successfully: {}", id);
         } else {
             logger.warn("Order not found: {}", id);

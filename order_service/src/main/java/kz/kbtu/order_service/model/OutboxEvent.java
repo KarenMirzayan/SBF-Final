@@ -27,17 +27,16 @@ public class OutboxEvent {
 
     // Default constructor for JPA
     public OutboxEvent() {
-        this.id = UUID.randomUUID(); // Manually generate UUID
+        this.id = UUID.randomUUID();
         this.createdAt = LocalDateTime.now();
     }
 
     public OutboxEvent(String aggregateType, String aggregateId, String eventType, String payload) {
-        this.id = UUID.randomUUID();
+        this();
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
         this.eventType = eventType;
         this.payload = payload;
-        this.createdAt = LocalDateTime.now();
     }
 
     public UUID getId() {
