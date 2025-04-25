@@ -37,7 +37,7 @@ public class OutboxProcessorService {
             logger.debug("Event {} not found or already locked, skipping", eventId);
             return;
         }
-        OutboxEvent event = events.get(0);
+        OutboxEvent event = events.getFirst();
         processEvent(event);
     }
 

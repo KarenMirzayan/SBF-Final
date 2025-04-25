@@ -21,7 +21,6 @@ public class OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
-    private final OutboxRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
 
     @PersistenceContext
@@ -31,7 +30,6 @@ public class OrderService {
                         OutboxRepository outboxEventRepository,
                         ObjectMapper objectMapper) {
         this.orderRepository = orderRepository;
-        this.outboxEventRepository = outboxEventRepository;
         this.objectMapper = objectMapper;
     }
 
