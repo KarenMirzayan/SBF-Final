@@ -1,63 +1,89 @@
 package kz.kbtu.message_relay.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import kz.kbtu.message_relay.model.OutboxEvent;
-import kz.kbtu.message_relay.repository.OutboxRepository;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.Statement;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
-public class OutboxPoller {
+public class OutboxPoller implements InitializingBean, DisposableBean {
     private static final Logger logger = LoggerFactory.getLogger(OutboxPoller.class);
-    private static final String TOPIC = "order-events";
+    private static final String NOTIFY_CHANNEL = "outbox_insert";
+    private static final long FALLBACK_INTERVAL = 10000;
 
-    private final OutboxRepository outboxRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final ObjectMapper objectMapper;
+    private final OutboxProcessorService processorService;
+    private final DataSource dataSource;
+    private final ExecutorService executorService;
+    private long lastFallbackCheck = 0;
 
-    public OutboxPoller(OutboxRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
-        this.outboxRepository = outboxRepository;
-        this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper;
+    public OutboxPoller(OutboxProcessorService processorService, DataSource dataSource) {
+        this.processorService = processorService;
+        this.dataSource = dataSource;
+        this.executorService = Executors.newSingleThreadExecutor();
     }
 
-    @Scheduled(fixedDelay = 1000) // Poll every 1 second
-    @Transactional
-    public void pollOutbox() {
-        List<OutboxEvent> events = outboxRepository.findAllOrderByCreatedAtAsc();
-        if (events.isEmpty()) {
-            logger.debug("No events found in outbox");
-            return;
-        }
-        logger.info("Found {} events to process", events.size());
-        for (OutboxEvent event : events) {
-            try {
-                String eventJson = objectMapper.writeValueAsString(event);
-                logger.info("Processing outbox event with ID: {}", event.getId());
-                kafkaTemplate.send(TOPIC, event.getAggregateId(), eventJson)
-                        .whenComplete((result, ex) -> {
-                            if (ex == null) {
-                                logger.info("Published event {} to Kafka with offset {}",
-                                        event.getId(), result.getRecordMetadata().offset());
-                                // Delete the event after successful publishing
-                                outboxRepository.delete(event);
-                                logger.info("Deleted outbox event with ID: {}", event.getId());
-                            } else {
-                                logger.error("Failed to publish event {} to Kafka: {}", event.getId(), ex.getMessage());
-                            }
-                        });
-            } catch (JsonProcessingException e) {
-                logger.error("Failed to serialize event {} to JSON: {}", event.getId(), e.getMessage());
-            } catch (Exception e) {
-                logger.error("Error processing event {}: {}", event.getId(), e.getMessage());
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        // Start the notification listener in a separate thread
+        executorService.submit(this::listenForNotifications);
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        // Shutdown the executor service
+        executorService.shutdown();
+    }
+
+    private void listenForNotifications() {
+        try (Connection connection = dataSource.getConnection()) {
+            // Set up LISTEN
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("LISTEN " + NOTIFY_CHANNEL);
             }
+
+            PGConnection pgConnection = connection.unwrap(PGConnection.class);
+
+            // Periodically check for notifications and process events
+            while (!Thread.currentThread().isInterrupted()) {
+                // Poll notifications
+                PGNotification[] notifications = pgConnection.getNotifications();
+                if (notifications != null) {
+                    for (PGNotification notification : notifications) {
+                        String eventId = notification.getParameter();
+                        logger.debug("Received notification for event ID: {}", eventId);
+                        processorService.processEventById(UUID.fromString(eventId));
+                    }
+                }
+
+                // Fallback: Periodically check for unprocessed events
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastFallbackCheck >= FALLBACK_INTERVAL) {
+                    processorService.processPendingEvents();
+                    lastFallbackCheck = currentTime;
+                }
+
+                // Wait before next check to avoid busy loop
+                Thread.sleep(1000); // Check every 1 second for notifications
+            }
+        } catch (Exception e) {
+            logger.error("Error in notification listener: {}", e.getMessage(), e);
+            // Restart listener after delay
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            listenForNotifications(); // Retry
         }
     }
 }
