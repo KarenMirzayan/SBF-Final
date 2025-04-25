@@ -12,6 +12,6 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, UUID> {
     @Query(value = "SELECT * FROM outbox WHERE id = :id FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<OutboxEvent> findByIdWithLock(@Param("id") UUID id);
 
-    @Query(value = "SELECT * FROM outbox ORDER BY created_at ASC LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    @Query(value = "SELECT * FROM outbox LIMIT :limit FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<OutboxEvent> findWithLockOrderByCreatedAtAsc(@Param("limit") int limit);
 }
