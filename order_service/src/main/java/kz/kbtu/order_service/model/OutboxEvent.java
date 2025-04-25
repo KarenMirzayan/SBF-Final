@@ -1,11 +1,17 @@
 package kz.kbtu.order_service.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "outbox")
+@Data
+@AllArgsConstructor
 public class OutboxEvent {
     @Id
     private UUID id;
@@ -25,7 +31,6 @@ public class OutboxEvent {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    // Default constructor for JPA
     public OutboxEvent() {
         this.id = UUID.randomUUID();
         this.createdAt = LocalDateTime.now();
@@ -39,51 +44,4 @@ public class OutboxEvent {
         this.payload = payload;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getAggregateType() {
-        return aggregateType;
-    }
-
-    public void setAggregateType(String aggregateType) {
-        this.aggregateType = aggregateType;
-    }
-
-    public String getAggregateId() {
-        return aggregateId;
-    }
-
-    public void setAggregateId(String aggregateId) {
-        this.aggregateId = aggregateId;
-    }
-
-    public String getEventType() {
-        return eventType;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
-
-    public String getPayload() {
-        return payload;
-    }
-
-    public void setPayload(String payload) {
-        this.payload = payload;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

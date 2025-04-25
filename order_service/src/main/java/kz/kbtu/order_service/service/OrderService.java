@@ -8,15 +8,18 @@ import kz.kbtu.order_service.model.Order;
 import kz.kbtu.order_service.model.OutboxEvent;
 import kz.kbtu.order_service.repository.OrderRepository;
 import kz.kbtu.order_service.repository.OutboxRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.RegEx;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
@@ -25,13 +28,6 @@ public class OrderService {
 
     @PersistenceContext
     private EntityManager entityManager;
-
-    public OrderService(OrderRepository orderRepository,
-                        OutboxRepository outboxEventRepository,
-                        ObjectMapper objectMapper) {
-        this.orderRepository = orderRepository;
-        this.objectMapper = objectMapper;
-    }
 
     @Transactional
     public Order createOrder(Order order) {
