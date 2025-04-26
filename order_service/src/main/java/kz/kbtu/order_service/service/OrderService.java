@@ -25,15 +25,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final OutboxRepository outboxRepository;
 
     @Transactional
     public Order createOrder(Order order) {
         logger.info("Creating order: {}", order);
         Order newOrder = orderRepository.save(order);
-        entityManager.flush();
         try {
             String payload = objectMapper.writeValueAsString(newOrder);
             OutboxEvent event = new OutboxEvent(
@@ -43,8 +40,7 @@ public class OrderService {
                     payload
             );
             logger.info("Persisting outbox event for ORDER_CREATED with ID: {}", event.getId());
-            entityManager.persist(event);
-            entityManager.flush();
+            outboxRepository.save(event);
             logger.info("Order created successfully: {}", newOrder.getId());
             return newOrder;
         } catch (JsonProcessingException e) {
@@ -75,7 +71,6 @@ public class OrderService {
 
             logger.info("Persisting updated order: {}", order.getId());
             Order savedOrder = orderRepository.save(order);
-            entityManager.flush();
 
             try {
                 String payload = objectMapper.writeValueAsString(savedOrder);
@@ -86,8 +81,7 @@ public class OrderService {
                         payload
                 );
                 logger.info("Persisting outbox event for ORDER_UPDATED with ID: {}", event.getId());
-                entityManager.persist(event);
-                entityManager.flush();
+                outboxRepository.save(event);
                 logger.info("Order updated successfully: {}", savedOrder.getId());
                 return savedOrder;
             } catch (JsonProcessingException e) {
@@ -110,10 +104,8 @@ public class OrderService {
                     "{}"
             );
             logger.info("Persisting outbox event for ORDER_DELETED with ID: {}", event.getId());
-            entityManager.persist(event);
-            entityManager.flush();
-            orderRepository.deleteById(id);
-            entityManager.flush();
+            outboxRepository.save(event);
+            outboxRepository.delete(event);
             logger.info("Order deleted successfully: {}", id);
         } else {
             logger.warn("Order not found: {}", id);
