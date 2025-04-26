@@ -1,70 +1,42 @@
 package kz.kbtu.order_service.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "orders")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Schema(description = "Order entity representing customer orders")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Unique order identifier")
     private Long id;
 
     @Column(nullable = false)
+    @Schema(description = "Name of the customer who placed the order", example = "John Doe")
     private String customerName;
 
     @Column(nullable = false)
+    @Schema(description = "Total amount of the order", example = "99.99")
     private Double totalAmount;
 
     @Column()
+    @Schema(description = "Date and time when the order was placed",
+            example = "2025-04-26T10:00:00")
     private LocalDateTime orderDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Schema(description = "Current status of the order",
+            example = "PROCESSING",
+            allowableValues = {"PROCESSING", "DELIVERED", "CANCELLED"})
     private OrderStatus status;
-
-    public Order() {
-        this.orderDate = LocalDateTime.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
-    }
-
-    public Double getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(Double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public LocalDateTime getOrderDate() {
-        return orderDate;
-    }
-
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
 }
