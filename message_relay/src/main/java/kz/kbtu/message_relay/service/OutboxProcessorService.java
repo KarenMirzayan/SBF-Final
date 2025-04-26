@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.UUID;
 public class OutboxProcessorService {
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessorService.class);
     private static final String TOPIC = "order-events";
-    private static final int BATCH_SIZE = 5; // Process up to 5 events per batch
+    private static final int BATCH_SIZE = 5;
 
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
@@ -30,7 +31,7 @@ public class OutboxProcessorService {
         this.objectMapper = objectMapper;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void processEventById(UUID eventId) {
         List<OutboxEvent> events = outboxRepository.findByIdWithLock(eventId);
         if (events.isEmpty()) {
@@ -41,7 +42,7 @@ public class OutboxProcessorService {
         processEvent(event);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void processPendingEvents() {
         List<OutboxEvent> events = outboxRepository.findWithLockOrderByCreatedAtAsc(BATCH_SIZE);
         if (events.isEmpty()) {
